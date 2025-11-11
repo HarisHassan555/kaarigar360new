@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'admin' || 
+         request.auth.uid in ['admin-1', 'admin-2'] ||
+         request.auth.email == 'admin@kaarigar360.com' ||
+         // Check if user document has admin role
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection - allow read for authenticated users, write for owners and admins
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Bookings collection
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // Ratings collection
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // Skills collection
+    match /skills/{skillId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Disputes collection
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+    }
+
+    // Admin actions collection
+    match /adminActions/{actionId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Allow admin access to all collections (this should allow admin to read everything)
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
