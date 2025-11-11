@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "601840315116",
+    "project_id": "kaarigar360",
+    "storage_bucket": "kaarigar360.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:601840315116:android:922c14a626df6f711c93c9",
+        "android_client_info": {
+          "package_name": "com.yourcompany.kaarigar360"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkqSpFkKlRigyyR732gNjSTICFsSjYdkM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
