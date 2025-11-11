@@ -19,6 +19,7 @@ export default function AnalyticsDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
   useEffect(() => {
@@ -27,42 +28,80 @@ export default function AnalyticsDashboard() {
 
   const loadAnalyticsData = async () => {
     setLoading(true);
+    setError(null);
     try {
+      console.log('📊 Loading analytics data...');
+      
       const [statsData, usersData, bookingsData] = await Promise.all([
         getDashboardStats(),
         getAllUsers(),
         getAllBookings()
       ]);
       
+      console.log('✅ Analytics data loaded:', {
+        stats: statsData,
+        usersCount: usersData.length,
+        bookingsCount: bookingsData.length
+      });
+      
       setStats(statsData);
       setUsers(usersData);
       setBookings(bookingsData);
-    } catch (error) {
-      console.error('Error loading analytics data:', error);
+    } catch (error: any) {
+      console.error('❌ Error loading analytics data:', error);
+      setError(error.message || 'Failed to load analytics data');
     } finally {
       setLoading(false);
     }
   };
 
   const getFilteredBookings = () => {
+    if (!bookings || bookings.length === 0) return [];
+    
     const now = new Date();
     const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
     const cutoffDate = subDays(now, daysAgo);
     
     return bookings.filter(booking => {
-      const bookingDate = booking.createdAt instanceof Date ? booking.createdAt : new Date(booking.createdAt);
-      return bookingDate >= cutoffDate;
+      try {
+        let bookingDate: Date;
+        if (booking.createdAt instanceof Date) {
+          bookingDate = booking.createdAt;
+        } else if (booking.createdAt?.toDate) {
+          bookingDate = booking.createdAt.toDate();
+        } else {
+          bookingDate = new Date(booking.createdAt);
+        }
+        return bookingDate >= cutoffDate;
+      } catch (e) {
+        console.warn('Error filtering booking date:', e, booking);
+        return false;
+      }
     });
   };
 
   const getFilteredUsers = () => {
+    if (!users || users.length === 0) return [];
+    
     const now = new Date();
     const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
     const cutoffDate = subDays(now, daysAgo);
     
     return users.filter(user => {
-      const userDate = new Date(user.createdAt);
-      return userDate >= cutoffDate;
+      try {
+        let userDate: Date;
+        if (user.createdAt instanceof Date) {
+          userDate = user.createdAt;
+        } else if (user.createdAt?.toDate) {
+          userDate = user.createdAt.toDate();
+        } else {
+          userDate = new Date(user.createdAt);
+        }
+        return userDate >= cutoffDate;
+      } catch (e) {
+        console.warn('Error filtering user date:', e, user);
+        return false;
+      }
     });
   };
 
@@ -71,13 +110,29 @@ export default function AnalyticsDashboard() {
     
     bookings.forEach(booking => {
       if (booking.status === 'completed') {
-        const month = format(new Date(booking.createdAt), 'MMM yyyy');
-        monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (booking.payment?.amount || 0);
+        try {
+          const bookingDate = booking.createdAt instanceof Date 
+            ? booking.createdAt 
+            : (booking.createdAt?.toDate ? booking.createdAt.toDate() : new Date(booking.createdAt));
+          const month = format(bookingDate, 'MMM yyyy');
+          monthlyRevenue[month] = (monthlyRevenue[month] || 0) + (booking.payment?.amount || 0);
+        } catch (e) {
+          console.warn('Error processing booking date:', e, booking);
+        }
       }
     });
     
-    return Object.entries(monthlyRevenue)
-      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+    const entries = Object.entries(monthlyRevenue);
+    if (entries.length === 0) return [];
+    
+    return entries
+      .sort((a, b) => {
+        try {
+          return new Date(a[0]).getTime() - new Date(b[0]).getTime();
+        } catch {
+          return 0;
+        }
+      })
       .slice(-6); // Last 6 months
   };
 
@@ -121,6 +176,21 @@ export default function AnalyticsDashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Analytics</h3>
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={loadAnalyticsData}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -216,22 +286,28 @@ export default function AnalyticsDashboard() {
             Revenue Trend
           </h4>
           <div className="space-y-3">
-            {revenueByMonth.map(([month, revenue]) => (
-              <div key={month} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{month}</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.min(100, (revenue / Math.max(...revenueByMonth.map(r => r[1]))) * 100)}%` 
-                      }}
-                    ></div>
+            {revenueByMonth.length > 0 ? (
+              revenueByMonth.map(([month, revenue]) => {
+                const maxRevenue = Math.max(...revenueByMonth.map(r => r[1]));
+                const percentage = maxRevenue > 0 ? Math.min(100, (revenue / maxRevenue) * 100) : 0;
+                return (
+                  <div key={month} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{month}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">PKR {revenue.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">PKR {revenue.toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">No revenue data available</p>
+            )}
           </div>
         </div>
 
@@ -271,12 +347,16 @@ export default function AnalyticsDashboard() {
           Top Worker Skills
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {topSkills.map(({ skill, count }) => (
-            <div key={skill} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium text-gray-900">{skill}</span>
-              <span className="text-sm text-gray-600">{count} workers</span>
-            </div>
-          ))}
+          {topSkills.length > 0 ? (
+            topSkills.map(({ skill, count }) => (
+              <div key={skill} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-900">{skill}</span>
+                <span className="text-sm text-gray-600">{count} workers</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 col-span-full text-center py-4">No skills data available</p>
+          )}
         </div>
       </div>
 

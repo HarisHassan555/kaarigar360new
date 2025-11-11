@@ -90,13 +90,37 @@ export const getPendingUsers = async (): Promise<User[]> => {
 export const getAllUsers = async (): Promise<User[]> => {
   try {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
+    let querySnapshot;
     
-    return querySnapshot.docs.map(doc => ({
-      uid: doc.id,
-      ...doc.data()
-    } as User));
+    try {
+      // Try with orderBy first
+      const q = query(usersRef, orderBy('createdAt', 'desc'));
+      querySnapshot = await getDocs(q);
+    } catch (orderByError: any) {
+      // If orderBy fails (no index), just get all users without ordering
+      console.warn('orderBy failed, fetching without order:', orderByError.message);
+      querySnapshot = await getDocs(usersRef);
+    }
+    
+    const users = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        uid: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date())
+      } as User;
+    });
+    
+    // Sort manually if orderBy failed
+    users.sort((a, b) => {
+      const dateAValue = a.createdAt as any;
+      const dateBValue = b.createdAt as any;
+      const dateA = dateAValue instanceof Date ? dateAValue : new Date(dateAValue);
+      const dateB = dateBValue instanceof Date ? dateBValue : new Date(dateBValue);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return users;
   } catch (error: any) {
     console.error('Error fetching users:', error);
     throw new Error(`Failed to fetch users: ${error.message}`);
@@ -124,14 +148,36 @@ export const getWorkers = async (): Promise<Worker[]> => {
 export const getAllBookings = async (): Promise<Booking[]> => {
   try {
     const bookingsRef = collection(db, 'bookings');
-    const q = query(bookingsRef, orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
+    let querySnapshot;
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date()
-    } as Booking));
+    try {
+      // Try with orderBy first
+      const q = query(bookingsRef, orderBy('createdAt', 'desc'));
+      querySnapshot = await getDocs(q);
+    } catch (orderByError: any) {
+      // If orderBy fails (no index), just get all bookings without ordering
+      console.warn('orderBy failed, fetching without order:', orderByError.message);
+      querySnapshot = await getDocs(bookingsRef);
+    }
+    
+    const bookings = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+        date: data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date())
+      } as Booking;
+    });
+    
+    // Sort manually if orderBy failed
+    bookings.sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+      const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return bookings;
   } catch (error: any) {
     console.error('Error fetching bookings:', error);
     throw new Error(`Failed to fetch bookings: ${error.message}`);
@@ -272,15 +318,27 @@ export const resolveDispute = async (disputeId: string, adminId: string, resolut
 // Get dashboard stats
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
+    console.log('📊 Fetching dashboard stats...');
+    
     const [usersSnapshot, bookingsSnapshot, disputesSnapshot] = await Promise.all([
       getDocs(collection(db, 'users')),
       getDocs(collection(db, 'bookings')),
-      getDocs(query(collection(db, 'disputes'), where('status', '==', 'open')))
+      getDocs(query(collection(db, 'disputes'), where('status', '==', 'open'))).catch(() => {
+        // If disputes query fails, return empty snapshot
+        console.warn('Failed to fetch disputes, using empty array');
+        return { docs: [] } as any;
+      })
     ]);
 
-    const users = usersSnapshot.docs.map(doc => doc.data());
-    const bookings = bookingsSnapshot.docs.map(doc => doc.data());
-    const disputes = disputesSnapshot.docs.map(doc => doc.data());
+    console.log('📈 Data fetched:', {
+      users: usersSnapshot.docs.length,
+      bookings: bookingsSnapshot.docs.length,
+      disputes: disputesSnapshot.docs.length
+    });
+
+    const users = usersSnapshot.docs.map((doc: any) => doc.data());
+    const bookings = bookingsSnapshot.docs.map((doc: any) => doc.data());
+    const disputes = disputesSnapshot.docs.map((doc: any) => doc.data());
 
     const totalUsers = users.length;
     const totalWorkers = users.filter(user => user.role === 'worker').length;
@@ -302,12 +360,19 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     
     const monthlyRevenue = bookings
       .filter(booking => {
-        const bookingDate = booking.createdAt?.toDate ? booking.createdAt.toDate() : new Date(booking.createdAt);
-        return bookingDate >= thirtyDaysAgo && booking.status === 'completed';
+        try {
+          const bookingDate = booking.createdAt?.toDate 
+            ? booking.createdAt.toDate() 
+            : new Date(booking.createdAt);
+          return bookingDate >= thirtyDaysAgo && booking.status === 'completed';
+        } catch (e) {
+          console.warn('Error processing booking date for revenue:', e);
+          return false;
+        }
       })
       .reduce((sum, booking) => sum + (booking.payment?.amount || 0), 0);
 
-    return {
+    const stats = {
       totalUsers,
       totalWorkers,
       totalEmployers,
@@ -318,8 +383,11 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalRevenue,
       monthlyRevenue
     };
+
+    console.log('✅ Dashboard stats calculated:', stats);
+    return stats;
   } catch (error: any) {
-    console.error('Error fetching dashboard stats:', error);
+    console.error('❌ Error fetching dashboard stats:', error);
     throw new Error(`Failed to fetch dashboard stats: ${error.message}`);
   }
 };
