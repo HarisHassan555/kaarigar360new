@@ -28,9 +28,29 @@ allprojects {
       url(reactNativeAndroidDir)
     }
 
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
+    // Primary repositories with retry support
+    google {
+      content {
+        includeGroupByRegex "com\\.android.*"
+        includeGroupByRegex "com\\.google.*"
+        includeGroupByRegex "androidx.*"
+      }
+    }
+    mavenCentral {
+      content {
+        includeGroupByRegex ".*"
+      }
+    }
+    maven { 
+      url 'https://www.jitpack.io'
+      content {
+        includeGroupByRegex "com\\.github.*"
+      }
+    }
+    
+    // Fallback repositories for better reliability
+    maven { url 'https://maven.google.com' }
+    maven { url 'https://repo1.maven.org/maven2' }
   }
 }
 
