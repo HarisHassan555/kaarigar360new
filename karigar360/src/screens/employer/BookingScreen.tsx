@@ -17,6 +17,7 @@ import { createBooking } from '../../services/firebase/bookingService';
 import { useAppSelector } from '../../store/hooks';
 import { Booking } from '../../types';
 import { shadows, spacing, typography } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<EmployerStackParamList, 'Booking'>;
 
@@ -24,6 +25,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
   const { worker } = route.params;
   const { user } = useAppSelector((state) => state.auth);
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [task, setTask] = useState('');
   const [description, setDescription] = useState('');
@@ -93,12 +95,12 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
   const handleBooking = async () => {
     if (!task || !address) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('booking.fillRequiredFields'));
       return;
     }
 
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to create a booking');
+      Alert.alert(t('common.error'), t('auth.enterBothFields'));
       return;
     }
 
@@ -108,7 +110,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
     
     // Basic date validation
     if (combinedDateTime <= new Date()) {
-      Alert.alert('Error', 'Please select a future date and time');
+      Alert.alert(t('common.error'), 'Please select a future date and time');
       return;
     }
 
@@ -136,11 +138,11 @@ export const BookingScreen = ({ route, navigation }: Props) => {
       const newBooking = await createBooking(bookingData);
 
       Alert.alert(
-        'Booking Created Successfully!',
+        t('booking.bookingSuccess'),
         `Your booking request has been sent to ${worker?.profile?.fullName || 'the worker'}. You will be notified when they accept or decline.`,
         [
           {
-            text: 'OK',
+            text: t('common.save'),
             onPress: () => {
               // Navigate back to home and let user check bookings tab
               navigation.navigate('Home');
@@ -150,7 +152,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
       );
     } catch (error) {
       console.error('Error creating booking:', error);
-      Alert.alert('Error', 'Failed to create booking. Please try again.');
+      Alert.alert(t('common.error'), t('booking.bookingFailed'));
     } finally {
       setLoading(false);
     }
@@ -165,23 +167,23 @@ export const BookingScreen = ({ route, navigation }: Props) => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backText}>← {t('common.cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Create Booking</Text>
+          <Text style={styles.title}>{t('booking.bookWorker')}</Text>
         </View>
 
         {/* Worker Info */}
         <View style={styles.workerInfo}>
-          <Text style={styles.workerName}>{worker?.profile?.fullName || 'Unknown Worker'}</Text>
+          <Text style={styles.workerName}>{worker?.profile?.fullName || t('common.worker')}</Text>
           <Text style={styles.workerSkills}>
-            {worker?.profile?.skills?.join(', ') || 'No skills listed'}
+            {worker?.profile?.skills?.join(', ') || t('booking.noSkillsListed')}
           </Text>
           <Text style={styles.workerRate}>
             PKR {worker?.profile?.hourlyRate || 1500}/hour
           </Text>
           {worker?.profile?.cnicVerified && (
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✓ CNIC Verified</Text>
+              <Text style={styles.verifiedText}>{t('common.cnicVerified')}</Text>
             </View>
           )}
         </View>
@@ -189,15 +191,15 @@ export const BookingScreen = ({ route, navigation }: Props) => {
         {/* Booking Form */}
         <View style={styles.form}>
           <Input
-            label="Task Title *"
-            placeholder="e.g., Electrical work, Plumbing repair, Carpentry"
+            label={`${t('booking.task')} *`}
+            placeholder={t('booking.enterTask')}
             value={task}
             onChangeText={setTask}
           />
 
           <Input
-            label="Task Description"
-            placeholder="Describe the work needed in detail..."
+            label={t('booking.description')}
+            placeholder={t('booking.enterDescription')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -206,7 +208,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
           {/* Date Selection */}
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.costLabel}>Date *</Text>
+            <Text style={styles.costLabel}>{t('booking.selectDate')} *</Text>
             <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
               style={{ 
@@ -235,7 +237,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
           {/* Time Selection */}
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.costLabel}>Time *</Text>
+            <Text style={styles.costLabel}>{t('booking.time')} *</Text>
             <TouchableOpacity
               onPress={handleTimePickerOpen}
               style={{ 
@@ -262,8 +264,8 @@ export const BookingScreen = ({ route, navigation }: Props) => {
           </View>
 
           <Input
-            label="Work Address *"
-            placeholder="Complete address where work is needed"
+            label={`${t('booking.address')} *`}
+            placeholder={t('booking.enterAddress')}
             value={address}
             onChangeText={setAddress}
             multiline
@@ -272,17 +274,17 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
           {/* Estimated Cost */}
           <View style={styles.costContainer}>
-            <Text style={styles.costLabel}>Estimated Hourly Rate:</Text>
+            <Text style={styles.costLabel}>{t('booking.estimatedHourlyRate')}</Text>
             <Text style={styles.costValue}>
               PKR {worker?.profile?.hourlyRate || 1500}
             </Text>
           </View>
 
           <View style={styles.noteContainer}>
-            <Text style={styles.noteTitle}>📝 Important Notes:</Text>
-            <Text style={styles.noteText}>• Final cost will be determined based on actual work hours</Text>
-            <Text style={styles.noteText}>• Worker will contact you to confirm details</Text>
-            <Text style={styles.noteText}>• Payment is due after work completion</Text>
+            <Text style={styles.noteTitle}>📝 {t('booking.importantNotes')}</Text>
+            <Text style={styles.noteText}>• {t('booking.finalCostNote')}</Text>
+            <Text style={styles.noteText}>• {t('booking.workerContactNote')}</Text>
+            <Text style={styles.noteText}>• {t('booking.paymentNote')}</Text>
           </View>
 
           {/* Test with TouchableOpacity instead of Button component */}
@@ -298,7 +300,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
             }}
           >
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              {loading ? 'Creating Booking...' : 'Send Booking Request'}
+              {loading ? t('booking.booking') : t('booking.bookNow')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -315,9 +317,9 @@ export const BookingScreen = ({ route, navigation }: Props) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.cancelButton}>Cancel</Text>
+                <Text style={styles.cancelButton}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Select Date</Text>
+              <Text style={styles.modalTitle}>{t('booking.selectDate')}</Text>
               <View style={{ width: 60 }} />
             </View>
             <ScrollView style={{ maxHeight: 400 }}>
@@ -342,7 +344,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
                         day: 'numeric' 
                       })}
                     </Text>
-                    {index === 0 && <Text style={styles.todayBadge}>Today</Text>}
+                    {index === 0 && <Text style={styles.todayBadge}>{t('booking.today')}</Text>}
                   </View>
                   {selectedDate.toDateString() === date.toDateString() && (
                     <Text style={styles.checkmark}>✓</Text>
@@ -365,11 +367,11 @@ export const BookingScreen = ({ route, navigation }: Props) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                <Text style={styles.cancelButton}>Cancel</Text>
+                <Text style={styles.cancelButton}>{t('common.cancel')}</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Select Time</Text>
+              <Text style={styles.modalTitle}>{t('booking.selectTime')}</Text>
               <TouchableOpacity onPress={handleTimeConfirm}>
-                <Text style={styles.confirmButton}>Done</Text>
+                <Text style={styles.confirmButton}>{t('booking.done')}</Text>
               </TouchableOpacity>
             </View>
             
@@ -377,7 +379,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
             <View style={styles.timePickerContainer}>
               {/* Hours Column */}
               <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>Hour</Text>
+                <Text style={styles.timeColumnLabel}>{t('booking.hour')}</Text>
                 <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
                   {generateHours().map((hour) => (
                     <TouchableOpacity
@@ -401,7 +403,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
               {/* Minutes Column */}
               <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>Minute</Text>
+                <Text style={styles.timeColumnLabel}>{t('booking.minute')}</Text>
                 <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
                   {generateMinutes().map((minute) => (
                     <TouchableOpacity
@@ -425,7 +427,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
 
               {/* AM/PM Column */}
               <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>Period</Text>
+                <Text style={styles.timeColumnLabel}>{t('booking.period')}</Text>
                 <View style={styles.timeScroll}>
                   <TouchableOpacity
                     onPress={() => setTempAmPm('AM')}
@@ -438,7 +440,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
                       styles.timeOptionText,
                       tempAmPm === 'AM' && styles.selectedTimeOptionText
                     ]}>
-                      AM
+                      {t('booking.am')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -452,7 +454,7 @@ export const BookingScreen = ({ route, navigation }: Props) => {
                       styles.timeOptionText,
                       tempAmPm === 'PM' && styles.selectedTimeOptionText
                     ]}>
-                      PM
+                      {t('booking.pm')}
                     </Text>
                   </TouchableOpacity>
                 </View>

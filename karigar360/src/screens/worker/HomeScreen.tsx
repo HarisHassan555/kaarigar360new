@@ -7,15 +7,20 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { getBookings } from '../../services/firebase/bookingService';
 import { updateWorkerStatus } from '../../services/firebase/workerService';
 import { useAppSelector } from '../../store/hooks';
 import { WorkerStackParamList } from '../../navigation/types';
 import { Booking } from '../../types';
-import { shadows, spacing, typography } from '../../utils/theme';
+import { shadows, spacing, typography, borderRadius } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
+
+const { width } = Dimensions.get('window');
 
 type NavigationProp = BottomTabNavigationProp<WorkerStackParamList>;
 
@@ -23,6 +28,7 @@ export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAppSelector((state) => state.auth);
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -49,7 +55,6 @@ export const HomeScreen: React.FC = () => {
       setIsAvailable(!isAvailable);
     } catch (error) {
       console.error('Error updating worker status:', error);
-      // You could show an alert here if needed
     } finally {
       setUpdatingStatus(false);
     }
@@ -92,18 +97,18 @@ export const HomeScreen: React.FC = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('home.goodMorning');
+    if (hour < 17) return t('home.goodAfternoon');
+    return t('home.goodEvening');
   };
 
   const stats = getWorkerStats();
 
   const quickActions = [
     {
-      title: 'My Work',
-      description: 'Manage your bookings and work requests',
-      icon: '📋',
+      title: t('myWork.title'),
+      description: t('common.viewAssignedWork'),
+      icon: 'briefcase-outline' as keyof typeof Ionicons.glyphMap,
       onPress: () => {
         navigation.navigate('BookingsTab');
       },
@@ -111,134 +116,202 @@ export const HomeScreen: React.FC = () => {
     {
       title: 'Schedule',
       description: 'View your daily schedule and calendar',
-      icon: '📅',
+      icon: 'calendar-outline' as keyof typeof Ionicons.glyphMap,
       onPress: () => {
         navigation.navigate('ScheduleTab');
       },
     },
     {
-      title: 'Profile',
+      title: t('profile.title'),
       description: 'Update your work profile and skills',
-      icon: '👤',
+      icon: 'person-outline' as keyof typeof Ionicons.glyphMap,
       onPress: () => {
         navigation.navigate('ProfileTab');
       },
     },
   ];
 
+  const statsData = [
+    {
+      label: t('home.todaysJobs'),
+      value: stats.todayJobs,
+      icon: 'today-outline' as keyof typeof Ionicons.glyphMap,
+    },
+    {
+      label: t('home.upcoming'),
+      value: stats.upcomingJobs,
+      icon: 'time-outline' as keyof typeof Ionicons.glyphMap,
+    },
+    {
+      label: t('home.completed'),
+      value: stats.completedJobs,
+      icon: 'checkmark-circle-outline' as keyof typeof Ionicons.glyphMap,
+    },
+    {
+      label: t('common.pending'),
+      value: stats.pendingJobs,
+      icon: 'hourglass-outline' as keyof typeof Ionicons.glyphMap,
+    },
+  ];
+
+  const menuItems = [
+    {
+      title: t('home.tipsForSuccess'),
+      icon: 'bulb-outline' as keyof typeof Ionicons.glyphMap,
+      onPress: () => {},
+    },
+    {
+      title: t('home.keepProfileUpdated'),
+      icon: 'information-circle-outline' as keyof typeof Ionicons.glyphMap,
+      onPress: () => {},
+    },
+  ];
+
   const styles = getStyles(colors);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.welcomeText}>{getGreeting()},</Text>
-          <Text style={styles.nameText}>{user?.profile.fullName || 'Worker'}!</Text>
-          <Text style={styles.subtitleText}>Ready to find your next job opportunity?</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Colored Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>WORKER DASHBOARD</Text>
+            <Text style={styles.greetingText}>{getGreeting()}</Text>
+            <Text style={styles.nameText}>{user?.profile.fullName || t('common.worker')}</Text>
+          </View>
           <TouchableOpacity 
-            style={styles.statusContainer} 
+            style={[
+              styles.statusButton,
+              isAvailable ? styles.statusButtonActive : styles.statusButtonInactive
+            ]}
             onPress={toggleAvailabilityStatus}
             disabled={updatingStatus}
+            activeOpacity={0.8}
           >
-            <Text style={styles.statusLabel}>Status:</Text>
             <View style={[
-              styles.statusBadge,
-              isAvailable ? styles.availableBadge : styles.unavailableBadge
+              styles.statusDot,
+              isAvailable ? styles.statusDotActive : styles.statusDotInactive
+            ]} />
+            <Text style={[
+              styles.statusButtonText,
+              isAvailable ? styles.statusButtonTextActive : styles.statusButtonTextInactive
             ]}>
-              <Text style={[
-                styles.statusText,
-                isAvailable ? styles.availableText : styles.unavailableText
-              ]}>
-                {updatingStatus ? 'Updating...' : (isAvailable ? 'Available' : 'Unavailable')}
-              </Text>
-            </View>
+              {updatingStatus ? t('home.updating') : (isAvailable ? t('home.available') : t('home.unavailable'))}
+            </Text>
           </TouchableOpacity>
         </View>
+        {/* Stats Cards */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionLabel}>{t('home.yourWorkOverview')}</Text>
+          <View style={styles.statsGrid}>
+            {statsData.map((stat, index) => (
+              <View key={index} style={styles.statCard}>
+                <Ionicons name={stat.icon} size={24} color={colors.primary} />
+                <Text style={styles.statNumber}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionGrid}>
+        {/* Quick Actions - List Style */}
+        <View style={styles.actionsSection}>
+          <Text style={styles.sectionLabel}>{t('common.quickActions')}</Text>
+          <View style={styles.menuCard}>
             {quickActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.actionCard}
+                style={[
+                  styles.menuItem,
+                  index < quickActions.length - 1 && styles.menuItemBorder
+                ]}
                 onPress={action.onPress}
+                activeOpacity={0.6}
               >
-                <Text style={styles.actionIcon}>{action.icon}</Text>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-                <Text style={styles.actionDescription}>{action.description}</Text>
+                <Ionicons name={action.icon} size={22} color={colors.text} />
+                <View style={styles.menuItemContent}>
+                  <Text style={styles.menuItemTitle}>{action.title}</Text>
+                  <Text style={styles.menuItemDescription}>{action.description}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Worker Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Work Overview</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.todayJobs}</Text>
-              <Text style={styles.statLabel}>Today's Jobs</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.upcomingJobs}</Text>
-              <Text style={styles.statLabel}>Upcoming</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.completedJobs}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{stats.pendingJobs}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Worker Tips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tips for Success</Text>
-          <View style={styles.tipsCard}>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipIcon}>💡</Text>
-              <Text style={styles.tipText}>Keep your profile updated with recent skills and experience</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipIcon}>⏰</Text>
-              <Text style={styles.tipText}>Respond to booking requests quickly to increase your chances</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipIcon}>⭐</Text>
-              <Text style={styles.tipText}>Maintain high ratings by delivering quality work on time</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+        {/* Recent Activity Card */}
+        <View style={styles.activitySection}>
+          <Text style={styles.sectionLabel}>{t('home.recentActivity')}</Text>
           <View style={styles.activityCard}>
             {stats.pendingJobs > 0 ? (
               <>
-                <Text style={styles.activityText}>You have {stats.pendingJobs} pending booking request{stats.pendingJobs !== 1 ? 's' : ''}</Text>
-                <Text style={styles.activitySubtext}>
-                  Check your My Work section to review and respond to new opportunities
-                </Text>
+                <View style={styles.activityHeader}>
+                  <Ionicons name="notifications" size={20} color={colors.warning} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityText}>
+                      {stats.pendingJobs === 1 
+                        ? t('home.pendingRequests', { count: stats.pendingJobs })
+                        : t('home.pendingRequestsPlural', { count: stats.pendingJobs })}
+                    </Text>
+                    <Text style={styles.activitySubtext}>
+                      {t('home.checkMyWork')}
+                    </Text>
+                  </View>
+                </View>
               </>
             ) : stats.upcomingJobs > 0 ? (
               <>
-                <Text style={styles.activityText}>You have {stats.upcomingJobs} upcoming job{stats.upcomingJobs !== 1 ? 's' : ''}</Text>
-                <Text style={styles.activitySubtext}>
-                  Great! You're all set for your upcoming work assignments
-                </Text>
+                <View style={styles.activityHeader}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityText}>
+                      {stats.upcomingJobs === 1
+                        ? t('home.upcomingJobs', { count: stats.upcomingJobs })
+                        : t('home.upcomingJobsPlural', { count: stats.upcomingJobs })}
+                    </Text>
+                    <Text style={styles.activitySubtext}>
+                      {t('home.allSet')}
+                    </Text>
+                  </View>
+                </View>
               </>
             ) : (
               <>
-                <Text style={styles.activityText}>No recent bookings</Text>
-                <Text style={styles.activitySubtext}>
-                  Keep your profile updated and check back regularly for new opportunities
-                </Text>
+                <View style={styles.activityHeader}>
+                  <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityText}>{t('home.noRecentBookings')}</Text>
+                    <Text style={styles.activitySubtext}>
+                      {t('home.keepUpdated')}
+                    </Text>
+                  </View>
+                </View>
               </>
             )}
+          </View>
+        </View>
+
+        {/* Menu Items */}
+        <View style={styles.menuSection}>
+          <View style={styles.menuCard}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.menuItem,
+                  index < menuItems.length - 1 && styles.menuItemBorder
+                ]}
+                onPress={item.onPress}
+                activeOpacity={0.6}
+              >
+                <Ionicons name={item.icon} size={22} color={colors.text} />
+                <Text style={styles.menuItemTitle}>{item.title}</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -251,162 +324,188 @@ const getStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    padding: spacing.lg,
+  // Colored Header Section
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  header: {
-    marginBottom: spacing.xl,
+  headerContent: {
+    marginBottom: spacing.md,
   },
-  welcomeText: {
-    fontSize: typography.sizes.lg,
-    color: colors.textSecondary,
+  headerTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
+    opacity: 0.8,
+    letterSpacing: 2,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  greetingText: {
+    fontSize: typography.sizes.sm,
+    color: colors.white,
+    opacity: 0.9,
+    marginBottom: spacing.xs / 2,
   },
   nameText: {
-    fontSize: typography.sizes.xxxl,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.sm,
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
   },
-  subtitleText: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  statusContainer: {
+  statusButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-    marginRight: spacing.sm,
-  },
-  statusBadge: {
-    backgroundColor: colors.success + '20',
+    alignSelf: 'flex-start',
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 16,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.white,
   },
-  statusText: {
+  statusButtonActive: {
+    backgroundColor: colors.white,
+  },
+  statusButtonInactive: {
+    backgroundColor: colors.white,
+    opacity: 0.9,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: spacing.xs,
+  },
+  statusDotActive: {
+    backgroundColor: colors.success,
+  },
+  statusDotInactive: {
+    backgroundColor: colors.gray[400],
+  },
+  statusButtonText: {
     fontSize: typography.sizes.sm,
-    color: colors.success,
-    fontWeight: '500',
+    fontWeight: typography.weights.semibold,
   },
-  availableBadge: {
-    backgroundColor: colors.success + '20',
-  },
-  unavailableBadge: {
-    backgroundColor: colors.textSecondary + '20',
-  },
-  availableText: {
+  statusButtonTextActive: {
     color: colors.success,
   },
-  unavailableText: {
+  statusButtonTextInactive: {
+    color: colors.gray[600],
+  },
+  // Content
+  content: {
+    paddingBottom: spacing.xl,
+  },
+  // Sections
+  statsSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  actionsSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  activitySection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  menuSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  sectionLabel: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
     color: colors.textSecondary,
-  },
-  section: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
-    color: colors.text,
     marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  actionGrid: {
+  // Stats Grid
+  statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
   },
-  actionCard: {
-    flex: 1,
-    minWidth: '45%',
+  statCard: {
+    width: (width - spacing.lg * 2 - spacing.md) / 2,
     backgroundColor: colors.surface,
     padding: spacing.lg,
-    borderRadius: 12,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
-    ...shadows.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
-  actionIcon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
-  },
-  actionTitle: {
-    fontSize: typography.sizes.md,
-    fontWeight: '600',
+  statNumber: {
+    fontSize: typography.sizes.xxl + 4,
+    fontWeight: typography.weights.bold,
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs / 2,
+  },
+  statLabel: {
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
+    fontWeight: typography.weights.medium,
     textAlign: 'center',
   },
-  actionDescription: {
+  // Menu Card
+  menuCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  menuItemContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  menuItemTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.text,
+    marginBottom: spacing.xs / 2,
+  },
+  menuItemDescription: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
-    textAlign: 'center',
   },
+  // Activity Card
   activityCard: {
     backgroundColor: colors.surface,
     padding: spacing.lg,
-    borderRadius: 12,
-    alignItems: 'center',
-    ...shadows.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  activityContent: {
+    flex: 1,
+    marginLeft: spacing.md,
   },
   activityText: {
     fontSize: typography.sizes.md,
-    fontWeight: '500',
+    fontWeight: typography.weights.semibold,
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs / 2,
   },
   activitySubtext: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: 12,
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  statNumber: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  statLabel: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  tipsCard: {
-    backgroundColor: colors.surface,
-    padding: spacing.lg,
-    borderRadius: 12,
-    ...shadows.sm,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  tipIcon: {
-    fontSize: 20,
-    marginRight: spacing.sm,
-    marginTop: 2,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.text,
     lineHeight: 20,
   },
-}); 
+});

@@ -10,11 +10,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { getBookings } from '../../services/firebase/bookingService';
 import { useAppSelector } from '../../store/hooks';
 import { Booking } from '../../types';
-import { shadows, spacing, typography } from '../../utils/theme';
+import { shadows, spacing, typography, borderRadius } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 interface CalendarDay {
   date: Date;
@@ -28,6 +30,7 @@ interface CalendarDay {
 export const ScheduleScreen: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,7 +64,7 @@ export const ScheduleScreen: React.FC = () => {
       setBookings(workerBookings);
     } catch (error) {
       console.error('Error loading bookings:', error);
-      Alert.alert('Error', 'Failed to load bookings. Please try again.');
+      Alert.alert(t('common.error'), t('schedule.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -185,13 +188,13 @@ export const ScheduleScreen: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'Pending';
+        return t('schedule.pending');
       case 'accepted':
-        return 'Accepted';
+        return t('myBookings.accepted');
       case 'completed':
-        return 'Completed';
+        return t('schedule.completed');
       case 'cancelled':
-        return 'Cancelled';
+        return t('myBookings.cancelled');
       default:
         return status;
     }
@@ -233,7 +236,17 @@ export const ScheduleScreen: React.FC = () => {
   const selectedDateJobs = selectedDate ? getJobsForDate(selectedDate) : [];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Colored Header Section */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>SCHEDULE</Text>
+          <Text style={styles.headerSubtitle}>
+            {selectedDate ? formatDate(selectedDate) : t('schedule.subtitle')}
+          </Text>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -241,15 +254,6 @@ export const ScheduleScreen: React.FC = () => {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>
-            {selectedDate ? formatDate(selectedDate) : 'My Schedule'}
-          </Text>
-          <Text style={styles.subtitle}>
-            {selectedDate ? 'Daily job details' : 'View and manage your daily jobs'}
-          </Text>
-        </View>
 
         {/* Back Button - only show when date is selected */}
         {selectedDate && (
@@ -257,8 +261,10 @@ export const ScheduleScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => setSelectedDate(null)}
+              activeOpacity={0.7}
             >
-              <Text style={styles.backButtonText}>← Back to Calendar</Text>
+              <Ionicons name="arrow-back" size={20} color={colors.primary} />
+              <Text style={styles.backButtonText}>{t('schedule.backToCalendar')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -271,8 +277,9 @@ export const ScheduleScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.navButton}
                 onPress={() => navigateMonth('prev')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.navButtonText}>‹</Text>
+                <Ionicons name="chevron-back" size={20} color={colors.white} />
               </TouchableOpacity>
               
               <Text style={styles.monthYear}>
@@ -285,8 +292,9 @@ export const ScheduleScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.navButton}
                 onPress={() => navigateMonth('next')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.navButtonText}>›</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.white} />
               </TouchableOpacity>
             </View>
 
@@ -294,7 +302,15 @@ export const ScheduleScreen: React.FC = () => {
             <View style={styles.calendarContainer}>
               {/* Day headers */}
               <View style={styles.dayHeaders}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                {[
+                  t('schedule.sunday'),
+                  t('schedule.monday'),
+                  t('schedule.tuesday'),
+                  t('schedule.wednesday'),
+                  t('schedule.thursday'),
+                  t('schedule.friday'),
+                  t('schedule.saturday')
+                ].map((day) => (
                   <Text key={day} style={styles.dayHeader}>
                     {day}
                   </Text>
@@ -345,7 +361,9 @@ export const ScheduleScreen: React.FC = () => {
           <View style={styles.selectedDateSection}>
             <View style={styles.selectedDateHeader}>
               <Text style={styles.jobCount}>
-                {selectedDateJobs.length} job{selectedDateJobs.length !== 1 ? 's' : ''} scheduled
+                {selectedDateJobs.length === 1 
+                  ? t('schedule.jobsScheduled', { count: selectedDateJobs.length })
+                  : t('schedule.jobsScheduledPlural', { count: selectedDateJobs.length })}
               </Text>
             </View>
             
@@ -354,17 +372,29 @@ export const ScheduleScreen: React.FC = () => {
                  {selectedDateJobs.map((job) => (
                    <View key={job.id} style={styles.jobCard}>
                      <View style={styles.jobHeader}>
-                       <Text style={styles.jobTitle}>{job.service}</Text>
+                       <Text style={styles.jobTitle}>{job.task || job.service || 'Task'}</Text>
                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(job.status) }]}>
                          <Text style={styles.statusText}>{getStatusText(job.status)}</Text>
                        </View>
                      </View>
                      
                      <View style={styles.jobDetails}>
-                       <Text style={styles.jobTime}>🕐 {new Date(job.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-                       <Text style={styles.jobClient}>👤 {job.employerName}</Text>
-                       <Text style={styles.jobLocation}>📍 {typeof job.location === 'string' ? job.location : job.location?.address || 'Location not specified'}</Text>
-                       <Text style={styles.jobPrice}>💰 Rs. {job.payment?.amount || 0}</Text>
+                       <View style={styles.jobDetailItem}>
+                         <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                         <Text style={styles.jobDetailText}>{new Date(job.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
+                       </View>
+                       <View style={styles.jobDetailItem}>
+                         <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+                         <Text style={styles.jobDetailText}>{job.employerName || 'Employer'}</Text>
+                       </View>
+                       <View style={styles.jobDetailItem}>
+                         <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                         <Text style={styles.jobDetailText}>{typeof job.location === 'string' ? job.location : job.location?.address || t('schedule.locationNotSpecified')}</Text>
+                       </View>
+                       <View style={styles.jobDetailItem}>
+                         <Ionicons name="cash-outline" size={14} color={colors.textSecondary} />
+                         <Text style={styles.jobDetailText}>Rs. {job.payment?.amount || 0}</Text>
+                       </View>
                      </View>
                      
                      {job.description && (
@@ -375,8 +405,8 @@ export const ScheduleScreen: React.FC = () => {
                </View>
              ) : (
               <View style={styles.noJobsContainer}>
-                <Text style={styles.noJobsText}>No jobs scheduled for this day</Text>
-                <Text style={styles.noJobsSubtext}>Enjoy your day off! 🎉</Text>
+                <Text style={styles.noJobsText}>{t('schedule.noJobsScheduled')}</Text>
+                <Text style={styles.noJobsSubtext}>{t('schedule.enjoyDayOff')}</Text>
               </View>
             )}
           </View>
@@ -389,19 +419,19 @@ export const ScheduleScreen: React.FC = () => {
               <Text style={styles.statNumber}>
                 {getBookingsForCurrentMonth().filter(b => b.status === 'accepted').length}
               </Text>
-              <Text style={styles.statLabel}>Upcoming</Text>
+              <Text style={styles.statLabel}>{t('schedule.upcoming')}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>
                 {getBookingsForCurrentMonth().filter(b => b.status === 'completed').length}
               </Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statLabel}>{t('schedule.completed')}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statNumber}>
                 {getBookingsForCurrentMonth().filter(b => b.status === 'pending').length}
               </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t('schedule.pending')}</Text>
             </View>
           </View>
         )}
@@ -421,42 +451,50 @@ const getStyles = (colors: any) => StyleSheet.create({
   calendarRow: {
     flexDirection: 'row',
   },
+  // Header Section
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  headerContent: {
+    marginBottom: spacing.md,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
+    opacity: 0.8,
+    letterSpacing: 2,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  headerSubtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.white,
+    opacity: 0.9,
+  },
   backButtonContainer: {
     padding: spacing.lg,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
+    gap: spacing.xs,
   },
   backButtonText: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium as any,
     color: colors.primary,
-    marginLeft: spacing.sm,
-  },
-  header: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold as any,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -465,20 +503,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     padding: spacing.lg,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderLight,
   },
   navButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  navButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.white,
   },
   monthYear: {
     fontSize: typography.sizes.lg,
@@ -487,10 +520,11 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   calendarContainer: {
     backgroundColor: colors.surface,
-    margin: spacing.md,
-    borderRadius: 12,
+    margin: spacing.lg,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   dayHeaders: {
     flexDirection: 'row',
@@ -513,7 +547,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     margin: 2,
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
     position: 'relative',
     backgroundColor: colors.background,
   },
@@ -562,16 +596,17 @@ const getStyles = (colors: any) => StyleSheet.create({
   selectedDateSection: {
     margin: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.lg,
-    ...shadows.sm,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   selectedDateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
+    marginBottom: spacing.sm,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -581,11 +616,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.text,
   },
   jobCount: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: colors.textSecondary,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs / 2,
     borderRadius: 12,
   },
    jobsList: {
@@ -593,27 +628,42 @@ const getStyles = (colors: any) => StyleSheet.create({
    },
   jobCard: {
     backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     borderLeftWidth: 4,
     borderLeftColor: colors.primary,
+  },
+  jobDetails: {
+    marginTop: spacing.xs,
+    gap: spacing.xs / 2,
+  },
+  jobDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  jobDetailText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
   },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   jobTitle: {
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold as any,
     color: colors.text,
     flex: 1,
   },
   statusBadge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs / 2,
     borderRadius: 12,
   },
   statusText: {
@@ -621,32 +671,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontWeight: typography.weights.medium as any,
     color: colors.white,
   },
-  jobDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  jobTime: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  jobClient: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  jobLocation: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  jobPrice: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
   jobDescription: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     color: colors.textSecondary,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     fontStyle: 'italic',
+    lineHeight: 16,
   },
   noJobsContainer: {
     alignItems: 'center',
@@ -669,10 +699,11 @@ const getStyles = (colors: any) => StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
     alignItems: 'center',
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   statNumber: {
     fontSize: typography.sizes.xxl,

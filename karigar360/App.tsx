@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-import { AppStatusOverlay } from './src/components/AppStatusOverlay';
+import './src/i18n'; // Initialize i18n
 import { useFirebaseInit } from './src/hooks/useFirebaseInit';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { EmployerNavigator } from './src/navigation/EmployerNavigator';
@@ -14,12 +14,14 @@ import { store } from './src/store';
 import { useAppDispatch, useAppSelector } from './src/store/hooks';
 import { initializeAuth, loadStoredUser } from './src/store/slices/authSlice';
 import { colors } from './src/utils/theme';
+import { changeLanguage } from './src/i18n';
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   const dispatch = useAppDispatch();
   const { user, isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const { preferences } = useAppSelector((state) => state.user);
   const { isInitialized: firebaseInitialized, error: firebaseError } = useFirebaseInit();
 
   useEffect(() => {
@@ -30,6 +32,10 @@ const AppNavigator = () => {
       try {
         await initializeAuth();
         dispatch(loadStoredUser());
+        // Sync i18n with Redux language preference
+        if (preferences.language) {
+          await changeLanguage(preferences.language as 'en' | 'ur');
+        }
       } catch (error) {
         console.error('Error initializing app:', error);
         // Still try to load stored user even if Firebase fails
@@ -38,7 +44,7 @@ const AppNavigator = () => {
     };
     
     initializeApp();
-  }, [dispatch, firebaseInitialized]);
+  }, [dispatch, firebaseInitialized, preferences.language]);
 
   if (isLoading || !firebaseInitialized) {
     return (
@@ -57,27 +63,24 @@ const AppNavigator = () => {
   }
 
   return (
-    <>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {!isAuthenticated ? (
-            <Stack.Screen name="Auth" component={AuthNavigator} />
-          ) : user?.status === 'approved' ? (
-            <>
-              {user?.role === 'employer' && (
-                <Stack.Screen name="EmployerMain" component={EmployerNavigator} />
-              )}
-              {user?.role === 'worker' && (
-                <Stack.Screen name="WorkerMain" component={WorkerNavigator} />
-              )}
-            </>
-          ) : (
-            <Stack.Screen name="StatusCheck" component={StatusCheckScreen} />
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-      <AppStatusOverlay />
-    </>
+    <NavigationContainer key={preferences.language}>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isAuthenticated ? (
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : user?.status === 'approved' ? (
+          <>
+            {user?.role === 'employer' && (
+              <Stack.Screen name="EmployerMain" component={EmployerNavigator} />
+            )}
+            {user?.role === 'worker' && (
+              <Stack.Screen name="WorkerMain" component={WorkerNavigator} />
+            )}
+          </>
+        ) : (
+          <Stack.Screen name="StatusCheck" component={StatusCheckScreen} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 

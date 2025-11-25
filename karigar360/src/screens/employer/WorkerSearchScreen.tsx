@@ -13,24 +13,48 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../../components/common/Input';
 import { EmployerStackParamList } from '../../navigation/types';
 import { getWorkers, searchWorkers } from '../../services/firebase/workerService';
+import { getAllSkills } from '../../services/firebase/skillsService';
 import { Worker, WORKER_SKILLS } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
-import { shadows, spacing, typography } from '../../utils/theme';
+import { shadows, spacing, typography, borderRadius } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<EmployerStackParamList, 'WorkerSearch'>;
 
 export const WorkerSearchScreen = ({ navigation }: Props) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
-  // Load workers on component mount
+  // Load workers and skills on component mount
   useEffect(() => {
     loadWorkers();
+    loadSkills();
   }, []);
+
+  const loadSkills = async () => {
+    try {
+      // Get global skills from Firestore
+      const globalSkills = await getAllSkills();
+      // Combine predefined skills with global skills, removing duplicates
+      const allSkills = [...WORKER_SKILLS];
+      globalSkills.forEach(skill => {
+        if (!allSkills.includes(skill)) {
+          allSkills.push(skill);
+        }
+      });
+      setAvailableSkills(allSkills);
+    } catch (error) {
+      console.error('Error loading skills:', error);
+      // Fallback to predefined skills only
+      setAvailableSkills([...WORKER_SKILLS]);
+    }
+  };
 
   // Debounced search effect
   useEffect(() => {
@@ -119,7 +143,7 @@ export const WorkerSearchScreen = ({ navigation }: Props) => {
       
       {item.profile.cnicVerified && (
         <View style={styles.verifiedBadge}>
-          <Text style={styles.verifiedText}>✓ CNIC Verified</Text>
+          <Text style={styles.verifiedText}>{t('common.cnicVerified')}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -133,35 +157,31 @@ export const WorkerSearchScreen = ({ navigation }: Props) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading workers...</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Find Workers</Text>
-          {searching && (
-            <ActivityIndicator 
-              size="small" 
-              color={colors.primary} 
-              style={styles.searchIndicator}
-            />
-          )}
-        </View>
-        {workers.length > 0 && (
-          <Text style={styles.resultCount}>
-            {workers.length} worker{workers.length !== 1 ? 's' : ''} found
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Colored Header Section */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>SEARCH WORKERS</Text>
+          <Text style={styles.headerSubtitle}>
+            {workers.length > 0 
+              ? (workers.length === 1 
+                  ? t('search.workersFound', { count: workers.length })
+                  : t('search.workersFoundPlural', { count: workers.length }))
+              : t('search.findSkilledWorkers')}
           </Text>
-        )}
+        </View>
       </View>
 
       <View style={styles.searchSection}>
         <Input
-          placeholder="Search by name or location..."
+          placeholder={t('search.placeholder')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           containerStyle={styles.searchInput}
@@ -185,10 +205,10 @@ export const WorkerSearchScreen = ({ navigation }: Props) => {
                 !selectedSkill && styles.skillFilterTextActive,
               ]}
             >
-              All
+              {t('search.all')}
             </Text>
           </TouchableOpacity>
-          {WORKER_SKILLS.map((skill) => (
+          {availableSkills.map((skill) => (
             <TouchableOpacity
               key={skill}
               style={[
@@ -218,16 +238,16 @@ export const WorkerSearchScreen = ({ navigation }: Props) => {
         showsVerticalScrollIndicator={false}
         refreshing={searching}
         onRefresh={handleRefresh}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {searchQuery || selectedSkill 
-                ? 'No workers found matching your criteria'
-                : 'No workers available'
-              }
-            </Text>
-          </View>
-        )}
+               ListEmptyComponent={() => (
+                 <View style={styles.emptyContainer}>
+                   <Text style={styles.emptyText}>
+                     {searchQuery || selectedSkill 
+                       ? t('search.noWorkersMatching')
+                       : t('search.noWorkersAvailable')
+                     }
+                   </Text>
+                 </View>
+               )}
       />
     </SafeAreaView>
   );
@@ -248,28 +268,29 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
   },
-  header: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  // Header Section
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerContent: {
+    marginBottom: spacing.md,
   },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.text,
+  headerTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: '700' as any,
+    color: colors.white,
+    opacity: 0.8,
+    letterSpacing: 2,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
   },
-  searchIndicator: {
-    marginLeft: spacing.sm,
-  },
-  resultCount: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginLeft: spacing.md,
+  headerSubtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.white,
+    opacity: 0.9,
   },
   searchSection: {
     padding: spacing.lg,

@@ -18,12 +18,14 @@ import { getWorkerById } from '../../services/firebase/workerService';
 import { useAppSelector } from '../../store/hooks';
 import { Booking, Rating } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
-import { shadows, spacing, typography } from '../../utils/theme';
+import { shadows, spacing, typography, borderRadius } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 export const MyBookingsScreen: React.FC = () => {
   const navigation = useNavigation<BottomTabNavigationProp<any>>();
   const { user } = useAppSelector((state) => state.auth);
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,17 +53,17 @@ export const MyBookingsScreen: React.FC = () => {
       for (const workerId of workerIds) {
         try {
           const worker = await getWorkerById(workerId);
-          names[workerId] = worker?.profile.fullName || 'Unknown Worker';
+          names[workerId] = worker?.profile.fullName || t('common.worker');
         } catch (error) {
           console.error('Error fetching worker:', error);
-          names[workerId] = 'Unknown Worker';
+          names[workerId] = t('common.worker');
         }
       }
       
       setWorkerNames(names);
     } catch (error) {
       console.error('Error loading bookings:', error);
-      Alert.alert('Error', 'Failed to load bookings');
+      Alert.alert(t('common.error'), t('myBookings.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -103,23 +105,23 @@ export const MyBookingsScreen: React.FC = () => {
 
   const handleCancelBooking = async (bookingId: string) => {
     Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
+      t('myBookings.cancelBooking'),
+      t('myBookings.sureCancel'),
       [
         {
-          text: 'No',
+          text: t('myBookings.no'),
           style: 'cancel',
         },
         {
-          text: 'Yes, Cancel',
+          text: t('myBookings.yesCancel'),
           style: 'destructive',
           onPress: async () => {
             try {
               await updateBookingStatus(bookingId, 'cancelled');
               loadBookings(); // Refresh the list
-              Alert.alert('Success', 'Booking cancelled successfully');
+              Alert.alert(t('common.success'), t('myBookings.bookingCancelled'));
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel booking');
+              Alert.alert(t('common.error'), t('myBookings.failedCancel'));
             }
           },
         },
@@ -128,7 +130,7 @@ export const MyBookingsScreen: React.FC = () => {
   };
 
   const getWorkerName = (workerId: string) => {
-    return workerNames[workerId] || 'Loading...';
+    return workerNames[workerId] || t('common.loading');
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -148,10 +150,10 @@ export const MyBookingsScreen: React.FC = () => {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Pending Approval';
-      case 'accepted': return 'Accepted';
-      case 'completed': return 'Completed';
-      case 'cancelled': return 'Cancelled';
+      case 'pending': return t('myBookings.pendingApproval');
+      case 'accepted': return t('myBookings.accepted');
+      case 'completed': return t('myBookings.completed');
+      case 'cancelled': return t('myBookings.cancelled');
       default: return status;
     }
   };
@@ -167,7 +169,7 @@ export const MyBookingsScreen: React.FC = () => {
         </View>
       </View>
 
-      <Text style={styles.workerName}>Worker: {getWorkerName(item.workerId)}</Text>
+      <Text style={styles.workerName}>{t('myBookings.worker')} {getWorkerName(item.workerId)}</Text>
       
       {item.description && (
         <Text style={styles.description} numberOfLines={2}>
@@ -177,14 +179,14 @@ export const MyBookingsScreen: React.FC = () => {
 
       <View style={styles.bookingDetails}>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>📅 Date:</Text>
+          <Text style={styles.detailLabel}>📅 {t('myBookings.date')}</Text>
           <Text style={styles.detailValue}>
             {new Date(item.date).toLocaleDateString()} at {new Date(item.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
           </Text>
         </View>
         
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>📍 Location:</Text>
+          <Text style={styles.detailLabel}>📍 {t('myBookings.location')}</Text>
           <Text style={styles.detailValue} numberOfLines={1}>
             {item.location.address}
           </Text>
@@ -194,7 +196,7 @@ export const MyBookingsScreen: React.FC = () => {
       <View style={styles.cardActions}>
         {item.status === 'pending' && (
           <Button
-            title="Cancel"
+            title={t('myBookings.cancel')}
             onPress={() => handleCancelBooking(item.id)}
             variant="outline"
             style={styles.actionButton}
@@ -202,7 +204,7 @@ export const MyBookingsScreen: React.FC = () => {
         )}
         {item.status === 'completed' && !getRatingForBooking(item.id) && (
           <Button
-            title="Rate Worker"
+            title={t('myBookings.rateWorker')}
             onPress={() => {
               // Navigate to rating screen
               navigation.navigate('Rating', { booking: item });
@@ -212,7 +214,7 @@ export const MyBookingsScreen: React.FC = () => {
         )}
         {item.status === 'completed' && getRatingForBooking(item.id) && (
           <View style={styles.ratedContainer}>
-            <Text style={styles.ratedText}>✅ Rated</Text>
+            <Text style={styles.ratedText}>✅ {t('myBookings.rated')}</Text>
           </View>
         )}
       </View>
@@ -243,27 +245,30 @@ export const MyBookingsScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading your bookings...</Text>
+          <Text style={styles.loadingText}>{t('myBookings.loadingBookings')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Bookings</Text>
-        <Text style={styles.subtitle}>
-          {filteredBookings.length} {filter === 'all' ? 'total' : filter} booking{filteredBookings.length !== 1 ? 's' : ''}
-        </Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Colored Header Section */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>MY BOOKINGS</Text>
+          <Text style={styles.headerSubtitle}>
+            {filteredBookings.length} {filter === 'all' ? t('myBookings.total') : filter} {filteredBookings.length !== 1 ? t('myBookings.bookings') : t('myBookings.booking')}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.filterContainer}>
-        {renderFilterButton('all', 'All')}
-        {renderFilterButton('pending', 'Pending')}
-        {renderFilterButton('accepted', 'Accepted')}
-        {renderFilterButton('completed', 'Completed')}
-        {renderFilterButton('cancelled', 'Cancelled')}
+        {renderFilterButton('all', t('search.all'))}
+        {renderFilterButton('pending', t('myBookings.pendingApproval'))}
+        {renderFilterButton('accepted', t('myBookings.accepted'))}
+        {renderFilterButton('completed', t('myBookings.completed'))}
+        {renderFilterButton('cancelled', t('myBookings.cancelled'))}
       </View>
 
       <FlatList
@@ -283,13 +288,13 @@ export const MyBookingsScreen: React.FC = () => {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {filter === 'all'
-                ? 'No bookings yet. Start by finding a worker!'
-                : `No ${filter} bookings found`
+                ? t('myBookings.noBookingsYet')
+                : t('myBookings.noFilterBookings', { filter })
               }
             </Text>
             {filter === 'all' && (
               <Button
-                title="Find Workers"
+                title={t('myBookings.findWorkers')}
                 onPress={() => {
                   // Navigate to worker search
                   console.log('Navigate to worker search');
@@ -319,21 +324,29 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textSecondary,
   },
-  header: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  // Header Section
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.text,
+  headerContent: {
+    marginBottom: spacing.md,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.xs,
+    fontWeight: '700' as any,
+    color: colors.white,
+    opacity: 0.8,
+    letterSpacing: 2,
     marginBottom: spacing.xs,
+    textTransform: 'uppercase',
   },
-  subtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+  headerSubtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.white,
+    opacity: 0.9,
   },
   filterContainer: {
     flexDirection: 'row',

@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BookingScreen } from '../screens/employer/BookingScreen';
 import { HomeScreen } from '../screens/employer/HomeScreen';
 import { MyBookingsScreen } from '../screens/employer/MyBookingsScreen';
@@ -73,7 +73,9 @@ export const EmployerNavigator = () => {
         component={HomeStack}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size || 24} color={color} />
+          ),
         }}
       />
       <Tab.Screen 
@@ -81,7 +83,9 @@ export const EmployerNavigator = () => {
         component={SearchStack}
         options={{
           tabBarLabel: 'Search',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search-outline" size={size || 24} color={color} />
+          ),
         }}
       />
       <Tab.Screen 
@@ -89,7 +93,9 @@ export const EmployerNavigator = () => {
         component={BookingsStack}
         options={{
           tabBarLabel: 'Bookings',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📋</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size || 24} color={color} />
+          ),
         }}
       />
       <Tab.Screen 
@@ -97,7 +103,9 @@ export const EmployerNavigator = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size || 24} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>

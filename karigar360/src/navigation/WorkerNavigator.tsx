@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { HomeScreen } from '../screens/worker/HomeScreen';
 import { MyWorkScreen } from '../screens/worker/MyWorkScreen';
 import { ProfileScreen } from '../screens/worker/ProfileScreen';
@@ -39,8 +39,8 @@ export const WorkerNavigator: React.FC = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>🏠</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size || 24} color={color} />
           ),
         }}
       />
@@ -49,8 +49,8 @@ export const WorkerNavigator: React.FC = () => {
         component={MyWorkScreen}
         options={{
           tabBarLabel: 'My Work',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>📋</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase-outline" size={size || 24} color={color} />
           ),
         }}
       />
@@ -59,8 +59,8 @@ export const WorkerNavigator: React.FC = () => {
         component={ScheduleScreen}
         options={{
           tabBarLabel: 'Schedule',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>📅</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size || 24} color={color} />
           ),
         }}
       />
@@ -69,8 +69,8 @@ export const WorkerNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20, color }}>👤</Text>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size || 24} color={color} />
           ),
         }}
       />

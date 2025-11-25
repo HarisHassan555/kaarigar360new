@@ -12,15 +12,19 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError, logout, updateProfile } from '../../store/slices/authSlice';
-import { setProfileEditMode, setDarkMode } from '../../store/slices/userSlice';
+import { setProfileEditMode, setDarkMode, setLanguage } from '../../store/slices/userSlice';
 import { useTheme } from '../../hooks/useTheme';
-import { shadows, spacing, typography } from '../../utils/theme';
+import { shadows, spacing, typography, borderRadius } from '../../utils/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '../../i18n';
 
 export const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user, isLoading, error } = useAppSelector((state) => state.auth);
   const { profileEditMode, preferences } = useAppSelector((state) => state.user);
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
   
   const [formData, setFormData] = useState({
     firstName: user?.profile.firstName || '',
@@ -30,7 +34,7 @@ export const ProfileScreen: React.FC = () => {
 
   const handleSaveProfile = async () => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), t('common.fillRequiredFields'));
       return;
     }
 
@@ -43,23 +47,23 @@ export const ProfileScreen: React.FC = () => {
       })).unwrap();
       
       dispatch(setProfileEditMode(false));
-      Alert.alert('Success', 'Profile updated successfully!');
+      Alert.alert(t('common.success'), t('common.profileUpdated'));
     } catch (error: any) {
-      Alert.alert('Error', error || 'Failed to update profile');
+      Alert.alert(t('common.error'), error || t('common.updateFailed'));
     }
   };
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('common.logout'),
+      t('common.logoutConfirm'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Logout',
+          text: t('common.logout'),
           style: 'destructive',
           onPress: () => {
             dispatch(logout());
@@ -85,133 +89,145 @@ export const ProfileScreen: React.FC = () => {
     dispatch(setDarkMode(!preferences.darkMode));
   };
 
+  const handleToggleLanguage = async () => {
+    const newLang = i18n.language === 'en' ? 'ur' : 'en';
+    await changeLanguage(newLang);
+    dispatch(setLanguage(newLang));
+    
+    // Just show a simple message, no layout changes
+    Alert.alert(
+      'Success',
+      newLang === 'ur' 
+        ? 'Language changed to Urdu' 
+        : 'Language changed to English'
+    );
+  };
+
   const styles = getStyles(colors);
 
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>User not found</Text>
+          <Text style={styles.errorText}>{t('common.userNotFound')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>My Profile</Text>
+        {/* Profile Header with Avatar */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {(formData.firstName.charAt(0) + formData.lastName.charAt(0)).toUpperCase()}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.profileName}>
+            {formData.firstName} {formData.lastName}
+          </Text>
+          <Text style={styles.profileRole}>{t('common.employer')}</Text>
+
+          {/* Action Buttons */}
           <View style={styles.headerActions}>
             <TouchableOpacity
               onPress={handleEditToggle}
-              style={[styles.actionButton, styles.editButton]}
+              style={styles.actionButton}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.actionButtonText, styles.editButtonText]}>
-                {profileEditMode ? 'Cancel' : 'Edit'}
+              <Ionicons 
+                name={profileEditMode ? "close" : "create-outline"} 
+                size={18} 
+                color={colors.primary} 
+              />
+              <Text style={styles.actionButtonText}>
+                {profileEditMode ? t('common.cancel') : t('common.edit')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleLogout}
               style={[styles.actionButton, styles.logoutButton]}
+              activeOpacity={0.7}
             >
+              <Ionicons name="log-out-outline" size={18} color={colors.danger} />
               <Text style={[styles.actionButtonText, styles.logoutButtonText]}>
-                Logout
+                {t('common.logout')}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Profile Picture Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profilePictureContainer}>
-            <View style={styles.profilePicturePlaceholder}>
-              <Text style={styles.profilePictureInitial}>
-                {(formData.firstName.charAt(0) + formData.lastName.charAt(0)).toUpperCase()}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.fullName}>
-            {formData.firstName} {formData.lastName}
-          </Text>
-          <Text style={styles.userRole}>
-            {user.role === 'employer' ? 'Employer' : 'Worker'}
-          </Text>
-          {user.profile.cnicVerified && (
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✓ CNIC Verified</Text>
-            </View>
-          )}
-        </View>
-
         {/* Basic Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.basicInfo')}</Text>
           
           <Input
-            label="First Name *"
+            label={`${t('profile.firstName')} *`}
             value={formData.firstName}
             onChangeText={(text) => setFormData({ ...formData, firstName: text })}
             editable={profileEditMode}
-            placeholder="Enter your first name"
+            placeholder={t('common.enterFirstName')}
           />
 
           <Input
-            label="Last Name *"
+            label={`${t('profile.lastName')} *`}
             value={formData.lastName}
             onChangeText={(text) => setFormData({ ...formData, lastName: text })}
             editable={profileEditMode}
-            placeholder="Enter your last name"
+            placeholder={t('common.enterLastName')}
           />
 
           <Input
-            label="Email Address"
+            label={t('profile.email')}
             value={user.email}
             editable={false}
-            placeholder="Email cannot be changed"
+            placeholder={t('common.emailCannotChange')}
             containerStyle={styles.disabledInput}
           />
 
           <Input
-            label="Phone Number"
+            label={t('profile.phone')}
             value={user.phoneNumber}
             editable={false}
-            placeholder="Phone number cannot be changed"
+            placeholder={t('common.phoneCannotChange')}
             containerStyle={styles.disabledInput}
           />
 
           <Input
-            label="Address"
+            label={t('profile.address')}
             value={formData.address}
             onChangeText={(text) => setFormData({ ...formData, address: text })}
             editable={profileEditMode}
             multiline
             numberOfLines={3}
-            placeholder="Enter your complete address"
+            placeholder={t('common.enterAddress')}
           />
         </View>
 
         {/* Account Information */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Information</Text>
+          <Text style={styles.sectionTitle}>{t('common.accountInfo')}</Text>
           
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>CNIC Number:</Text>
+              <Text style={styles.infoLabel}>{t('profile.cnicNumber')}:</Text>
               <Text style={styles.infoValue}>{user.profile.cnic}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Verification Status:</Text>
+              <Text style={styles.infoLabel}>{t('profile.verificationStatus')}:</Text>
               <Text style={[
                 styles.infoValue,
                 { color: user.profile.cnicVerified ? colors.success : colors.warning }
               ]}>
-                {user.profile.cnicVerified ? 'Verified' : 'Pending'}
+                {user.profile.cnicVerified ? t('common.verified') : t('common.pending')}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Member Since:</Text>
+              <Text style={styles.infoLabel}>{t('profile.memberSince')}:</Text>
               <Text style={styles.infoValue}>
                 {new Date(user.createdAt).toLocaleDateString('en-US', {
                   year: 'numeric',
@@ -225,21 +241,23 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
+          <Text style={styles.sectionTitle}>{t('profile.settings')}</Text>
           
           <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>🔔 Notifications</Text>
-            <Text style={styles.settingValue}>Enabled</Text>
+            <Text style={styles.settingLabel}>🔔 {t('profile.notifications')}</Text>
+            <Text style={styles.settingValue}>{t('common.enabled')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.settingItem} onPress={handleToggleDarkMode}>
-            <Text style={styles.settingLabel}>🌙 Dark Mode</Text>
-            <Text style={styles.settingValue}>{preferences.darkMode ? 'Enabled' : 'Disabled'}</Text>
+            <Text style={styles.settingLabel}>🌙 {t('profile.darkMode')}</Text>
+            <Text style={styles.settingValue}>{preferences.darkMode ? t('common.enabled') : t('common.disabled')}</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingItem}>
-            <Text style={styles.settingLabel}>🌐 Language</Text>
-            <Text style={styles.settingValue}>English</Text>
+          <TouchableOpacity style={styles.settingItem} onPress={handleToggleLanguage}>
+            <Text style={styles.settingLabel}>🌐 {t('common.language')}</Text>
+            <Text style={styles.settingValue}>
+              {i18n.language === 'ur' ? 'اردو' : 'English'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -247,7 +265,7 @@ export const ProfileScreen: React.FC = () => {
         {profileEditMode && (
           <View style={styles.buttonContainer}>
             <Button
-              title={isLoading ? 'Saving...' : 'Save Changes'}
+              title={isLoading ? t('common.saving') : t('common.saveChanges')}
               onPress={handleSaveProfile}
               loading={isLoading}
               style={styles.saveButton}
@@ -257,22 +275,22 @@ export const ProfileScreen: React.FC = () => {
 
         {/* Help Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Help & Support</Text>
+          <Text style={styles.sectionTitle}>{t('profile.help')}</Text>
           
           <TouchableOpacity style={styles.helpItem}>
-            <Text style={styles.helpLabel}>📞 Contact Support</Text>
+            <Text style={styles.helpLabel}>📞 {t('profile.contactSupport')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.helpItem}>
-            <Text style={styles.helpLabel}>❓ FAQ</Text>
+            <Text style={styles.helpLabel}>❓ {t('profile.faq')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.helpItem}>
-            <Text style={styles.helpLabel}>📋 Terms & Conditions</Text>
+            <Text style={styles.helpLabel}>📋 {t('profile.terms')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.helpItem}>
-            <Text style={styles.helpLabel}>🔒 Privacy Policy</Text>
+            <Text style={styles.helpLabel}>🔒 {t('profile.privacy')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -302,44 +320,66 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: typography.sizes.lg,
     color: colors.gray[600],
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Profile Header
+  profileHeader: {
+    backgroundColor: colors.primary,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  title: {
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: spacing.md,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: colors.white,
+  },
+  avatarText: {
+    fontSize: typography.sizes.xxxl,
+    fontWeight: '700' as any,
+    color: colors.primary,
+  },
+  profileName: {
     fontSize: typography.sizes.xxl,
-    fontWeight: '700',
-    color: colors.text,
+    fontWeight: '700' as any,
+    color: colors.white,
+    marginBottom: spacing.xs,
+  },
+  profileRole: {
+    fontSize: typography.sizes.md,
+    color: colors.white,
+    opacity: 0.9,
+    marginBottom: spacing.md,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   actionButton: {
-    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.white,
   },
   actionButtonText: {
     fontSize: typography.sizes.sm,
-    fontWeight: '500',
-  },
-  editButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  editButtonText: {
-    color: colors.white,
+    fontWeight: '600' as any,
+    color: colors.primary,
   },
   logoutButton: {
     backgroundColor: colors.white,
-    borderColor: colors.danger,
   },
   logoutButtonText: {
     color: colors.danger,

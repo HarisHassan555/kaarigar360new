@@ -1,65 +1,101 @@
-// Light theme colors
+// Modern Light theme colors - Vibrant Purple & Orange gradient theme
 const lightColors = {
-  primary: '#2563EB', // Blue
-  secondary: '#4F46E5', // Indigo
+  primary: '#7C3AED', // Vibrant Purple
+  primaryLight: '#A78BFA', // Light Purple
+  primaryDark: '#5B21B6', // Dark Purple
+  secondary: '#F97316', // Vibrant Orange
+  secondaryLight: '#FB923C', // Light Orange
+  secondaryDark: '#C2410C', // Dark Orange
+  accent: '#EC4899', // Pink accent
   success: '#10B981', // Green
   danger: '#EF4444', // Red
   error: '#EF4444', // Red (alias for error)
   warning: '#F59E0B', // Yellow
-  info: '#3B82F6', // Light Blue
-  light: '#F3F4F6', // Gray-100
-  dark: '#1F2937', // Gray-800
+  info: '#06B6D4', // Cyan
+  light: '#F8FAFC', // Very light gray
+  dark: '#0F172A', // Very dark slate
   white: '#FFFFFF',
   black: '#000000',
   gray: {
-    50: '#F9FAFB',
-    100: '#F3F4F6',
-    200: '#E5E7EB',
-    300: '#D1D5DB',
-    400: '#9CA3AF',
-    500: '#6B7280',
-    600: '#4B5563',
-    700: '#374151',
-    800: '#1F2937',
-    900: '#111827',
+    50: '#F8FAFC',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    300: '#CBD5E1',
+    400: '#94A3B8',
+    500: '#64748B',
+    600: '#475569',
+    700: '#334155',
+    800: '#1E293B',
+    900: '#0F172A',
   },
-  background: '#F9FAFB',
+  background: '#F8FAFC', // Very light slate
+  backgroundSecondary: '#FFFFFF',
   surface: '#FFFFFF',
-  text: '#111827',
-  textSecondary: '#6B7280',
-  border: '#E5E7EB',
+  surfaceElevated: '#FFFFFF',
+  text: '#0F172A',
+  textSecondary: '#64748B',
+  textTertiary: '#94A3B8',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  // Gradient colors
+  gradient: {
+    primary: ['#7C3AED', '#A78BFA'],
+    secondary: ['#F97316', '#FB923C'],
+    accent: ['#EC4899', '#F472B6'],
+    success: ['#10B981', '#34D399'],
+    purpleOrange: ['#7C3AED', '#F97316'],
+    purplePink: ['#7C3AED', '#EC4899'],
+  },
 };
 
-// Dark theme colors
+// Modern Dark theme colors
 const darkColors = {
-  primary: '#3B82F6', // Lighter Blue
-  secondary: '#6366F1', // Lighter Indigo
-  success: '#10B981', // Green (same)
-  danger: '#EF4444', // Red (same)
-  error: '#EF4444', // Red (same)
-  warning: '#F59E0B', // Yellow (same)
-  info: '#60A5FA', // Lighter Blue
-  light: '#374151', // Darker Gray
-  dark: '#F3F4F6', // Light Gray (inverted)
-  white: '#1F2937', // Dark Gray (inverted)
-  black: '#F9FAFB', // Light Gray (inverted)
+  primary: '#A78BFA', // Lighter Purple
+  primaryLight: '#C4B5FD', // Very Light Purple
+  primaryDark: '#7C3AED', // Purple
+  secondary: '#FB923C', // Lighter Orange
+  secondaryLight: '#FBBF24', // Light Orange
+  secondaryDark: '#F97316', // Orange
+  accent: '#F472B6', // Light Pink
+  success: '#34D399', // Light Green
+  danger: '#F87171', // Light Red
+  error: '#F87171', // Light Red
+  warning: '#FBBF24', // Light Yellow
+  info: '#22D3EE', // Light Cyan
+  light: '#1E293B', // Dark slate
+  dark: '#F8FAFC', // Light (inverted)
+  white: '#0F172A', // Very dark (inverted)
+  black: '#F8FAFC', // Light (inverted)
   gray: {
-    50: '#111827',
-    100: '#1F2937',
-    200: '#374151',
-    300: '#4B5563',
-    400: '#6B7280',
-    500: '#9CA3AF',
-    600: '#D1D5DB',
-    700: '#E5E7EB',
-    800: '#F3F4F6',
-    900: '#F9FAFB',
+    50: '#0F172A',
+    100: '#1E293B',
+    200: '#334155',
+    300: '#475569',
+    400: '#64748B',
+    500: '#94A3B8',
+    600: '#CBD5E1',
+    700: '#E2E8F0',
+    800: '#F1F5F9',
+    900: '#F8FAFC',
   },
-  background: '#111827',
-  surface: '#1F2937',
-  text: '#F9FAFB',
-  textSecondary: '#D1D5DB',
-  border: '#374151',
+  background: '#0F172A', // Very dark slate
+  backgroundSecondary: '#1E293B',
+  surface: '#1E293B', // Dark slate
+  surfaceElevated: '#334155',
+  text: '#F8FAFC',
+  textSecondary: '#CBD5E1',
+  textTertiary: '#94A3B8',
+  border: '#334155',
+  borderLight: '#1E293B',
+  // Gradient colors
+  gradient: {
+    primary: ['#A78BFA', '#C4B5FD'],
+    secondary: ['#FB923C', '#FBBF24'],
+    accent: ['#F472B6', '#F9A8D4'],
+    success: ['#34D399', '#6EE7B7'],
+    purpleOrange: ['#A78BFA', '#FB923C'],
+    purplePink: ['#A78BFA', '#F472B6'],
+  },
 };
 
 // Default export for backward compatibility (light theme)
@@ -99,34 +135,65 @@ export const typography = {
 
 export const shadows = {
   sm: {
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
-    elevation: 1,
-  },
-  md: {
-    shadowColor: '#000',
+    shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  lg: {
-    shadowColor: '#000',
+  md: {
+    shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  lg: {
+    shadowColor: '#7C3AED',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
     elevation: 8,
+  },
+  xl: {
+    shadowColor: '#7C3AED',
+    shadowOffset: {
+      width: 0,
+      height: 12,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  // Colored shadows for special effects
+  primary: {
+    shadowColor: '#7C3AED',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  secondary: {
+    shadowColor: '#F97316',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 };
 

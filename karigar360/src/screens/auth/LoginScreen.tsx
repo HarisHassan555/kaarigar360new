@@ -17,18 +17,20 @@ import { AuthStackParamList } from '../../navigation/types';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError, login } from '../../store/slices/authSlice';
 import { colors, spacing, typography } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export const LoginScreen = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Alert.alert(t('common.error'), t('auth.enterBothFields'));
       return;
     }
 
@@ -40,7 +42,7 @@ export const LoginScreen = ({ navigation }: Props) => {
       })).unwrap();
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      Alert.alert(t('auth.loginFailed'), error.message || t('auth.invalidCredentials'));
     }
   };
 
@@ -60,16 +62,16 @@ export const LoginScreen = ({ navigation }: Props) => {
         >
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
               <Text style={styles.subtitle}>
-                Sign in to your Kaarigar360 account
+                {t('auth.signInAccount')}
               </Text>
             </View>
 
             <View style={styles.form}>
               <Input
-                label="Email Address"
-                placeholder="Enter your email"
+                label={t('auth.emailAddress')}
+                placeholder={t('auth.enterEmail')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -77,15 +79,15 @@ export const LoginScreen = ({ navigation }: Props) => {
               />
 
               <Input
-                label="Password"
-                placeholder="Enter your password"
+                label={t('auth.password')}
+                placeholder={t('auth.enterPassword')}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
               />
 
               <Button
-                title={isLoading ? 'Signing In...' : 'Sign In'}
+                title={isLoading ? t('auth.signingIn') : t('auth.signIn')}
                 onPress={handleLogin}
                 loading={isLoading}
                 disabled={isLoading}
@@ -93,34 +95,34 @@ export const LoginScreen = ({ navigation }: Props) => {
               />
 
               <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.registerSection}>
-              <Text style={styles.registerText}>Don&apos;t have an account? </Text>
+              <Text style={styles.registerText}>{t('auth.noAccount')} </Text>
               <TouchableOpacity onPress={navigateToRegister}>
-                <Text style={styles.registerLink}>Create Account</Text>
+                <Text style={styles.registerLink}>{t('auth.createAccount')}</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.featuresSection}>
-              <Text style={styles.featuresTitle}>Why Kaarigar360?</Text>
+              <Text style={styles.featuresTitle}>{t('auth.whyKaarigar360')}</Text>
               <View style={styles.feature}>
                 <Text style={styles.featureIcon}>✅</Text>
-                <Text style={styles.featureText}>Verified skilled workers</Text>
+                <Text style={styles.featureText}>{t('auth.verifiedWorkers')}</Text>
               </View>
               <View style={styles.feature}>
                 <Text style={styles.featureIcon}>💰</Text>
-                <Text style={styles.featureText}>Transparent pricing</Text>
+                <Text style={styles.featureText}>{t('auth.transparentPricing')}</Text>
               </View>
               <View style={styles.feature}>
                 <Text style={styles.featureIcon}>🛡️</Text>
-                <Text style={styles.featureText}>Secure payments</Text>
+                <Text style={styles.featureText}>{t('auth.securePayments')}</Text>
               </View>
               <View style={styles.feature}>
                 <Text style={styles.featureIcon}>⭐</Text>
-                <Text style={styles.featureText}>Rated professionals</Text>
+                <Text style={styles.featureText}>{t('auth.ratedProfessionals')}</Text>
               </View>
             </View>
           </View>

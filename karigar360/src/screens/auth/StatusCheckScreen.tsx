@@ -15,11 +15,13 @@ import { getCurrentUserData } from '../../services/firebase/authService';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { colors, shadows, spacing, typography } from '../../utils/theme';
+import { useTranslation } from 'react-i18next';
 
 export const StatusCheckScreen: React.FC = () => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [userStatus, setUserStatus] = useState<string | null>(null);
 
@@ -39,11 +41,11 @@ export const StatusCheckScreen: React.FC = () => {
       
       if (userData?.status === 'approved') {
         Alert.alert(
-          'Account Approved!',
+          t('statusCheck.title'),
           'Your account has been approved. You can now access the app.',
           [
             {
-              text: 'Continue',
+              text: t('common.save'),
               onPress: () => {
                 // This will trigger the auth state change and redirect to main app
               },
@@ -53,7 +55,7 @@ export const StatusCheckScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking status:', error);
-      Alert.alert('Error', 'Failed to check account status. Please try again.');
+      Alert.alert(t('common.error'), 'Failed to check account status. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,15 +63,15 @@ export const StatusCheckScreen: React.FC = () => {
 
   const handleGoToLogin = () => {
     Alert.alert(
-      'Sign Out',
+      t('common.logout'),
       'To go back to the login screen, you need to sign out of your current account. Do you want to continue?',
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Sign Out',
+          text: t('common.logout'),
           style: 'destructive',
           onPress: () => {
             dispatch(logout());
